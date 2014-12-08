@@ -476,6 +476,9 @@ void loop(void)
             case SERIALRX_MSP:
                 rcReady = mspFrameComplete();
                 break;
+            case SERIALRX_JETIEX:
+            	rcReady = jetiFrameComplete();
+            	break;
         }
     }
 

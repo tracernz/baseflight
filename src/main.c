@@ -201,6 +201,9 @@ int main(void)
             case SERIALRX_MSP:
                 mspInit(&rcReadRawFunc);
                 break;
+            case SERIALRX_JETIEX:
+            	jetiInit(&rcReadRawFunc);
+                break;
         }
     }
 #ifndef CJMCU

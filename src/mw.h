@@ -578,6 +578,11 @@ void mspInit(rcReadRawDataPtr *callback);
 bool mspFrameComplete(void);
 void mspFrameRecieve(void);
 
+// jeti ex
+void jetiInit(rcReadRawDataPtr *callback);
+bool jetiFrameComplete(void);
+int8_t jetiSetPassthrough(void);
+
 // buzzer
 void buzzer(uint8_t warn_vbat);
 void systemBeep(bool onoff);

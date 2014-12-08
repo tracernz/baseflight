@@ -63,6 +63,7 @@ COMMON_SRC	 = buzzer.c \
 		   sbus.c \
 		   sumd.c \
 		   spektrum.c \
+           jetiex.c \
 		   startup_stm32f10x_md_gcc.S \
 		   $(CMSIS_SRC) \
 		   $(STDPERIPH_SRC)

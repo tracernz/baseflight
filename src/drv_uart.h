@@ -36,4 +36,5 @@ void uartWrite(serialPort_t *instance, uint8_t ch);
 uint8_t uartTotalBytesWaiting(serialPort_t *instance);
 uint8_t uartRead(serialPort_t *instance);
 void uartSetBaudRate(serialPort_t *s, uint32_t baudRate);
+void uartSetHalfDuplex(serialPort_t *instance, bool enable);
 bool isUartTransmitBufferEmpty(serialPort_t *s);
