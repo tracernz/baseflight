@@ -276,22 +276,22 @@ void uartSetMode(serialPort_t *s, portMode_t mode)
 // Sets the UART to a single wire half-duplex mode which uses only the tx pin
 // in open drain mode.
 void uartSetHalfDuplex(serialPort_t *instance, bool enable) {
-	uartPort_t *s = (uartPort_t *)instance;
-	gpio_config_t gpio;
+    uartPort_t *s = (uartPort_t *)instance;
+    gpio_config_t gpio;
 
-	// TODO: Make work for UART1
-	// USART2_TX    PA2
-	gpio.speed = Speed_50MHz;
-	gpio.pin = Pin_2;
-	gpio.mode = Mode_AF_OD;
-	gpioInit(GPIOA, &gpio);
+    // TODO: Make work for UART1
+    // USART2_TX    PA2
+    gpio.speed = Speed_50MHz;
+    gpio.pin = Pin_2;
+    gpio.mode = Mode_AF_OD;
+    gpioInit(GPIOA, &gpio);
 
-	if(enable) {
-		USART_HalfDuplexCmd(s->USARTx, ENABLE);
-	}
-	else {
-		USART_HalfDuplexCmd(s->USARTx, DISABLE);
-	}
+    if(enable) {
+        USART_HalfDuplexCmd(s->USARTx, ENABLE);
+    }
+    else {
+        USART_HalfDuplexCmd(s->USARTx, DISABLE);
+    }
 }
 
 
