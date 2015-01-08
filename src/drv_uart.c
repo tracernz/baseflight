@@ -273,8 +273,11 @@ void uartSetMode(serialPort_t *s, portMode_t mode)
     (void)mode;
     // not implemented.
 }
-// Sets the UART to a single wire half-duplex mode which uses only the tx pin
-// in open drain mode.
+
+/*
+* Sets the UART to a single wire half-duplex mode which uses only the tx pin
+* in open drain mode allowing the pin to float when not driven by tx.
+*/
 void uartSetHalfDuplex(serialPort_t *instance, bool enable) {
     uartPort_t *s = (uartPort_t *)instance;
     gpio_config_t gpio;

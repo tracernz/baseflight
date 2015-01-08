@@ -7,26 +7,29 @@
  *
  * Based on Jeti EX Bus protocol v1.21
  * http://www.jetimodel.com/en/show-file/642/
+ *
+ * The EX Bus protocol uses a single wire for both rx and tx (i.e. half-duplex)
+ * Baud rate is either 125 kb/s or 250 kb/s and does not change once communication
+ * is established. The slave must detect the correct baudrate by detecting
+ * packet errors.
  */
 
 #include "board.h"
 #include "mw.h"
 
-#define JETI_BAUD_SLOW 125000
-#define JETI_BAUD_FAST 250000
-#define JETI_RCFRAME_BEGIN 0x3E
-#define JETI_PACKET_RC 0x31
-#define JETI_FRAME_MINLEN 7
-#define JETI_FRAME_MAXLEN 70
-#define JETI_NUM_CHANNELS 16
+#define JETI_BAUD_SLOW      125000
+#define JETI_BAUD_FAST      250000
+#define JETI_RCFRAME_BEGIN  0x3E
+#define JETI_PACKET_RC      0x31
+#define JETI_FRAME_MINLEN   7
+#define JETI_FRAME_MAXLEN   70
+#define JETI_NUM_CHANNELS   16
 
 
 // external vars (ugh)
 extern int16_t failsafeCnt;
 
 static USART_TypeDef *jetiUart = USART2;
-static bool jetiFrameBegun = false;
-static uint8_t jetiFramePos = 0;
 static uint8_t jetiFrame[JETI_FRAME_MAXLEN];
 static bool jetiRcFrameComplete = false;
 static bool jetiBaudValid = false;
@@ -37,29 +40,28 @@ static void jetiDataReceive(uint16_t c);
 static uint16_t jetiReadRawRC(uint8_t chan);
 
 
-// checksum code provided by Jeti EX-Bus Protocol v1.21 docs
-static uint16_t crc_ccitt_update(uint16_t crc, uint8_t data)
-{
-    uint16_t ret_val;
 
+static uint16_t jetiCrcUpdate(uint16_t crc, uint8_t data)
+{
     data ^= (uint8_t)crc & (uint8_t)0xFF;
     data ^= data << 4;
-    ret_val = ((((uint16_t)data << 8) | ((crc & 0xFF00) >> 8))
+    crc = ((((uint16_t)data << 8) | ((crc & 0xFF00) >> 8))
             ^ (uint8_t)(data >> 4) ^ ((uint16_t)data << 3));
 
-    return ret_val;
+    return crc;
 }
 
-static uint16_t getcrc16z(uint8_t *p, uint16_t len)
+// Calculates CRC16-CCIT as required by Jeti EX Bus protocol
+static uint16_t jetiCrcGenerate(uint8_t *data, uint8_t len)
 {
-    uint16_t crc16_data = 0;
+    uint16_t crc16 = 0;
 
     while(len--) {
-        crc16_data = crc_ccitt_update(crc16_data, p[0]);
-        p++;
+        crc16 = jetiCrcUpdate(crc16, data[0]);
+        data++;
     }
 
-    return crc16_data;
+    return crc16;
 }
 
 
@@ -84,14 +86,13 @@ bool jetiFrameComplete(void) {
         failsafeCnt = 0;
         jetiRcFrameComplete = false;
         return true;
-    }
-    else if(!jetiBaudValid && (jetiJunkChars > 1000)) {
+    } else if(!jetiBaudValid && (jetiJunkChars > 1000)) {
         // If no valid channel data is received try switching baud
         jetiJunkChars = 0;
         if(core.rcvrport->baudRate == JETI_BAUD_SLOW)
-            jetiUartOpen(JETI_BAUD_FAST, MODE_RX);
+            //jetiUartOpen(JETI_BAUD_FAST, MODE_RX);
         else
-            jetiUartOpen(JETI_BAUD_SLOW, MODE_RX);
+            //jetiUartOpen(JETI_BAUD_SLOW, MODE_RX);
     }
     return false;
 }
@@ -99,6 +100,8 @@ bool jetiFrameComplete(void) {
 // UART receive ISR callback
 static void jetiDataReceive(uint16_t c)
 {
+    static bool jetiFrameBegun = false;
+    static uint8_t jetiFramePos = 0;
     static uint8_t jetiFrameLen;
 
     if(!jetiFrameBegun) {
@@ -128,7 +131,7 @@ static void jetiDataReceive(uint16_t c)
 
     if(jetiFramePos == jetiFrameLen) {
         // end of frame, check crc16-ccit
-        if(getcrc16z(jetiFrame, jetiFrameLen) == 0) {
+        if(jetiCrcGenerate(jetiFrame, jetiFrameLen) == 0) {
             jetiBaudValid = true;
             jetiRcFrameComplete = true;
         } else
