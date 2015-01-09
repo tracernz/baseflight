@@ -47,7 +47,7 @@ static const uint8_t ubloxInit[] = {
     0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x03, 0x01, 0x0F, 0x49,           // set STATUS MSG rate
     0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x06, 0x01, 0x12, 0x4F,           // set SOL MSG rate
     0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x12, 0x01, 0x1E, 0x67,           // set VELNED MSG rate
-    0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x30, 0x01, 0x3C, 0xA3,           // set SVINFO MSG rate
+    0xB5, 0x62, 0x06, 0x01, 0x03, 0x00, 0x01, 0x30, 0x05, 0x40, 0xA7,           // set SVINFO MSG rate
     0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xC8, 0x00, 0x01, 0x00, 0x01, 0x00, 0xDE, 0x6A,             // set rate to 5Hz
 };
 
@@ -1167,6 +1167,10 @@ static bool gpsNewFrameNMEA(char c)
                         case FRAME_RMC:
                             GPS_speed = gps_msg.speed;
                             GPS_ground_course = gps_msg.ground_course;
+                            if (!sensors(SENSOR_MAG) && GPS_speed > 100) {
+                                GPS_ground_course = wrap_18000(GPS_ground_course * 10) / 10;
+                                heading = GPS_ground_course / 10;    // Use values Based on GPS if we are moving.
+                            }
                             break;
                     }
                 }
@@ -1325,13 +1329,16 @@ static bool _new_position;
 static bool _new_speed;
 
 // Receive buffer
+
+#define UBLOX_BUFFER_SIZE 200
+
 static union {
     ubx_nav_posllh posllh;
     ubx_nav_status status;
     ubx_nav_solution solution;
     ubx_nav_velned velned;
     ubx_nav_svinfo svinfo;
-    uint8_t bytes[200];
+    uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
 void _update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b)
@@ -1376,7 +1383,7 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             _step++;
             _ck_b += (_ck_a += data);       // checksum byte
             _payload_length += (uint16_t)(data << 8);
-            if (_payload_length > 512) {
+            if (_payload_length > UBLOX_BUFFER_SIZE) {
                 _payload_length = 0;
                 _step = 0;
             }
@@ -1384,7 +1391,7 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             break;
         case 6:
             _ck_b += (_ck_a += data);       // checksum byte
-            if (_payload_counter < sizeof(_buffer)) {
+            if (_payload_counter < UBLOX_BUFFER_SIZE) {
                 _buffer.bytes[_payload_counter] = data;
             }
             if (++_payload_counter == _payload_length)
@@ -1436,12 +1443,9 @@ static bool UBLOX_parse_gps(void)
         GPS_speed = _buffer.velned.speed_2d;    // cm/s
         GPS_ground_course = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
         _new_speed = true;
-        if (!sensors(SENSOR_MAG) && f.FIXED_WING && GPS_speed > 100) {
+        if (!sensors(SENSOR_MAG) && GPS_speed > 100) {
+            GPS_ground_course = wrap_18000(GPS_ground_course * 10) / 10;
             heading = GPS_ground_course / 10;    // Use values Based on GPS if we are moving.
-            if (heading <= - 180)
-                heading += 360;
-            if (heading >=  180)
-                heading -= 360;
         }
         break;
     case MSG_SVINFO:

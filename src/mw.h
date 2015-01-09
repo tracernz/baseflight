@@ -341,13 +341,17 @@ typedef struct master_t {
     int16_t accZero[3];
     int16_t magZero[3];
 
+    // Safety features
+    uint8_t auto_disarm_board;              // Disarm board when motors not spinning at armed enabled (0 = disabled, 1 - 60 seconds when to automatically disarm)
+
     // Battery/ADC stuff
     uint16_t currentscale;                  // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
     uint16_t currentoffset;                 // offset of the current sensor in millivolt steps
     uint8_t multiwiicurrentoutput;          // if set to 1 output the amperage in milliamp steps instead of 0.01A steps via msp
     uint8_t vbatscale;                      // adjust this to match battery voltage to reported value
     uint8_t vbatmaxcellvoltage;             // maximum voltage per cell, used for auto-detecting battery voltage in 0.1V units, default is 43 (4.3V)
-    uint8_t vbatmincellvoltage;             // minimum voltage per cell, this triggers battery out alarms, in 0.1V units, default is 33 (3.3V)
+    uint8_t vbatmincellvoltage;             // minimum voltage per cell, this triggers FASTER battery out alarm, in 0.1V units, default is 33 (3.3V)
+    uint8_t vbatwarningcellvoltage;         // minimum voltage per cell, this triggers SLOWER battery out alarm, in 0.1V units, default is 35 (3.5V)
     uint8_t power_adc_channel;              // which channel is used for current sensor. Right now, only 3 places are supported: RC_CH2 (unused when in CPPM mode, = 1), RC_CH8 (last channel in PWM mode, = 9), ADC_EXTERNAL_PAD (Rev5 only, = 5), 0 to disable
 
     // Radio/ESC-related configuration
@@ -469,7 +473,6 @@ extern uint16_t vbat;                  // battery voltage in 0.1V steps
 extern int16_t telemTemperature1;      // gyro sensor temperature
 extern int32_t amperage;               // amperage read by current sensor in 0.01A steps
 extern int32_t mAhdrawn;              // milli ampere hours drawn from battery since start
-extern uint8_t toggleBeep;
 
 #define PITCH_LOOKUP_LENGTH 7
 #define THROTTLE_LOOKUP_LENGTH 12
@@ -584,7 +587,6 @@ bool jetiFrameComplete(void);
 int8_t jetiSetPassthrough(void);
 
 // buzzer
-void buzzer(uint8_t warn_vbat);
 void systemBeep(bool onoff);
 
 // cli

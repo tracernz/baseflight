@@ -24,7 +24,7 @@ master_t mcfg;  // master config struct with data independent from profiles
 config_t cfg;   // profile config struct
 const char rcChannelLetters[] = "AERT1234";
 
-static const uint8_t EEPROM_CONF_VERSION = 72;
+static const uint8_t EEPROM_CONF_VERSION = 73;
 static uint32_t enabledSensors = 0;
 static void resetConf(void);
 static const uint32_t FLASH_WRITE_ADDR = 0x08000000 + (FLASH_PAGE_SIZE * (FLASH_PAGE_COUNT - (CONFIG_SIZE / 1024)));
@@ -216,6 +216,7 @@ static void resetConf(void)
     mcfg.vbatscale = 110;
     mcfg.vbatmaxcellvoltage = 43;
     mcfg.vbatmincellvoltage = 33;
+    mcfg.vbatwarningcellvoltage = 35;
     mcfg.power_adc_channel = 0;
     mcfg.serialrx_type = 0;
     mcfg.spektrum_sat_bind = 0;
@@ -238,6 +239,8 @@ static void resetConf(void)
     mcfg.deadband3d_throttle = 50;
     mcfg.motor_pwm_rate = MOTOR_PWM_RATE;
     mcfg.servo_pwm_rate = 50;
+    // safety features
+    mcfg.auto_disarm_board = 5; // auto disarm after 5 sec if motors not started or disarmed
     // gps/nav stuff
     mcfg.gps_type = GPS_NMEA;
     mcfg.gps_baudrate = GPS_BAUD_115200;
@@ -359,20 +362,6 @@ static void resetConf(void)
     // custom mixer. clear by defaults.
     for (i = 0; i < MAX_MOTORS; i++)
         mcfg.customMixer[i].throttle = 0.0f;
-
-    // alternative defaults AlienWii32 (activate via OPTIONS="ALIENWII32" during make for NAZE target)
-#ifdef ALIENWII32
-    featureSet(FEATURE_SERIALRX);
-    featureSet(FEATURE_MOTOR_STOP);
-    mcfg.serialrx_type = 1;
-    mcfg.spektrum_sat_bind = 5;
-    mcfg.minthrottle = 1000;
-    mcfg.maxthrottle = 2000;
-    cfg.rcRate8 = 130;
-    cfg.rollPitchRate = 20;
-    cfg.yawRate = 60;
-    parseRcChannels("TAER1234");
-#endif
 
     // copy default config into all 3 profiles
     for (i = 0; i < 3; i++)
